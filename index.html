@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mohemmtek - Task & Earn</title>
+  <style>
+    :root {
+      --primary: #00b894;
+      --secondary: #ffffff;
+      --text-dark: #2d3436;
+      --text-light: #636e72;
+      --bg-light: #f1f2f6;
+      --bg-dark: #2f3640;
+      --text-in-dark: #dcdde1;
+      --shadow: rgba(0, 0, 0, 0.1);
+    }
+
+    * { box-sizing: border-box; transition: 0.3s ease; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-light);
+      color: var(--text-dark);
+    }
+
+    body.dark {
+      background-color: var(--bg-dark);
+      color: var(--text-in-dark);
+    }
+
+    header {
+      background-color: var(--primary);
+      color: var(--secondary);
+      padding: 30px 20px;
+      text-align: center;
+      border-radius: 0 0 20px 20px;
+      box-shadow: 0 4px 10px var(--shadow);
+      position: relative;
+    }
+
+    header h1 { margin: 0; font-size: 2em; }
+    header p { margin-top: 5px; font-size: 1em; }
+
+    #toggle-theme {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: transparent;
+      border: 2px solid white;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    main {
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+
+    input, button, textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: 1px solid #dcdde1;
+      font-size: 1em;
+      background-color: #fff;
+    }
+
+    body.dark input, body.dark textarea {
+      background-color: #444;
+      color: white;
+      border-color: #888;
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #019875;
+      cursor: pointer;
+    }
+
+    .hidden { display: none; }
+
+    .task {
+      background-color: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 15px;
+      box-shadow: 0 2px 10px var(--shadow);
+    }
+
+    body.dark .task {
+      background-color: #353b48;
+      color: white;
+    }
+
+    .balance {
+      font-weight: bold;
+      font-size: 1.4em;
+      margin-bottom: 20px;
+      color: var(--primary);
+    }
+
+    footer {
+      text-align: center;
+      color: var(--text-light);
+      padding: 20px;
+      font-size: 0.9em;
+    }
+
+    /* زر الدعم الثابت */
+    #support-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background-color: var(--primary);
+      color: white;
+      padding: 15px 18px;
+      border-radius: 50%;
+      font-size: 1.5em;
+      text-align: center;
+      text-decoration: none;
+      box-shadow: 0 4px 10px var(--shadow);
+      z-index: 999;
+    }
+    #support-btn:hover {
+      background-color: #019875;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🚀 Mohemmtek</h1>
+    <p>Complete tasks & earn real cash!</p>
+    <button id="toggle-theme">🌓</button>
+  </header>
+
+  <main>
+    <div id="auth-section">
+      <h2>🔐 Login / Sign Up</h2>
+      <input type="email" id="email" placeholder="Enter your email" required />
+      <button onclick="login()">Continue</button>
+    </div>
+
+    <div id="user-panel" class="hidden">
+      <h2>👋 مرحبًا، <span id="user-email"></span></h2>
+      <p class="balance">💰 الرصيد: <span id="balance">0</span> جنيه</p>
+      <div id="task-list"></div>
+      <button onclick="requestWithdrawal()">📤 طلب سحب</button>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+      <h2>🔧 إضافة مهمة جديدة</h2>
+      <input type="text" id="task-title" placeholder="عنوان المهمة" />
+      <textarea id="task-desc" placeholder="وصف المهمة"></textarea>
+      <input type="number" id="task-reward" placeholder="المكافأة بالجنيه" />
+      <button onclick="addTask()">إضافة المهمة</button>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2025 Mohemmtek. جميع الحقوق محفوظة.</p>
+  </footer>
+
+  <!-- زر الدعم عبر تيليجرام -->
+  <a href="https://t.me/Mohemmtek" target="_blank" id="support-btn" title="اتصل بالدعم عبر تيليجرام">
+    💬
+  </a>
+
+  <script>
+    const userEmail = localStorage.getItem("email") || "";
+    const isAdmin = userEmail === "admin@mohemmtek.com";
+    const balance = JSON.parse(localStorage.getItem("balance") || "{}");
+    const completed = JSON.parse(localStorage.getItem("completed") || "[]");
+    let tasks = JSON.parse(localStorage.getItem("tasks") || "[]");
+
+    if (!tasks.length) {
+      tasks = [
+        {
+          title: "انضم إلى مجموعة التليجرام",
+          desc: "انضم إلى المجموعة التالية على تيليجرام واحصل على 10 جنيه بعد التأكيد.\n\n👉 <a href='https://t.me/rpahkash' target='_blank'>اضغط هنا للانضمام</a>",
+          reward: 10
+        }
+      ];
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function login() {
+      const email = document.getElementById("email").value.trim();
+      if (!email) return alert("يرجى إدخال بريد إلكتروني.");
+      localStorage.setItem("email", email);
+      location.reload();
+    }
+
+    function loadUserPanel() {
+      document.getElementById("auth-section").classList.add("hidden");
+      document.getElementById("user-panel").classList.remove("hidden");
+      document.getElementById("user-email").textContent = userEmail;
+      document.getElementById("balance").textContent = balance[userEmail] || 0;
+      renderTasks();
+      if (isAdmin) document.getElementById("admin-panel").classList.remove("hidden");
+    }
+
+    function renderTasks() {
+      const container = document.getElementById("task-list");
+      container.innerHTML = "";
+      tasks.forEach((task, i) => {
+        if (completed.includes(i)) return;
+        const div = document.createElement("div");
+        div.className = "task";
+        div.innerHTML = `
+          <h3>${task.title}</h3>
+          <p>${task.desc}</p>
+          <p>🎯 المكافأة: <strong>${task.reward} جنيه</strong></p>
+          <input type="file" accept="image/*" id="proof-${i}" />
+          <button onclick="completeTask(${i})">✔️ رفع إثبات وإكمال</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function completeTask(index) {
+      const fileInput = document.getElementById(`proof-${index}`);
+      if (!fileInput || !fileInput.files.length) {
+        alert("يرجى رفع صورة إثبات.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function () {
+        completed.push(index);
+        localStorage.setItem("completed", JSON.stringify(completed));
+        balance[userEmail] = (balance[userEmail] || 0) + parseFloat(tasks[index].reward);
+        localStorage.setItem("balance", JSON.stringify(balance));
+        renderTasks();
+        document.getElementById("balance").textContent = balance[userEmail];
+        
+        // إرسال البيانات إلى Google Sheets
+        fetch("https://script.google.com/macros/s/AKfycbysP9cI8ZMh6_Et3LjyMkG5g3DA118L-2o6c91AtpwtPVFukGfKxROIJl-w66-hAQFmhQ/exec", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            email: userEmail,
+            taskTitle: tasks[index].title,
+            reward: tasks[index].reward
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success") {
+            alert("تم إكمال المهمة وتسجيلها في Google Sheets!");
+          } else {
+            alert("تمت المهمة، لكن حدث خطأ أثناء الحفظ في Google Sheets.");
+          }
+        });
+
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+
+    function addTask() {
+      const title = document.getElementById("task-title").value.trim();
+      const desc = document.getElementById("task-desc").value.trim();
+      const reward = parseFloat(document.getElementById("task-reward").value);
+      if (!title || !desc || !reward) return alert("يرجى ملء جميع البيانات.");
+      tasks.push({ title, desc, reward });
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      alert("تمت إضافة المهمة!");
+    }
+
+    function requestWithdrawal() {
+      const bal = balance[userEmail] || 0;
+      const message = `Hello, I want to withdraw my earnings.\nEmail: ${userEmail}\nBalance: ${bal} EGP`;
+      const tgLink = `https://t.me/Mohemmtek?text=${encodeURIComponent(message)}`;
+      window.open(tgLink, "_blank");
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+    }
+
+    document.getElementById("toggle-theme").addEventListener("click", toggleTheme);
+
+    // Load preferred theme
+    if (localStorage.getItem("theme") === "dark") {
+      document.body.classList.add("dark");
+    }
+
+    if (userEmail) loadUserPanel();
+  </script>
+</body>
+</html>
