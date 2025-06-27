@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mohemmtek - اكسب من تنفيذ المهام</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    #screenshot-balance {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      z-index: 9999;
+      font-weight: bold;
+      font-size: 18px;
+      color: #00b894;
+    }
+    .countdown {
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      margin: 20px 0;
+      padding: 15px;
+      background: linear-gradient(135deg, #00b894, #00a884);
+      color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+    }
+    .countdown-title {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .countdown-timer {
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+    .promotion-box {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      margin: 20px 0;
+      box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+    .promotion-box:hover {
+      transform: scale(1.02);
+    }
+    .error-message {
+      color: #e74c3c;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-900 dark:bg-darkBg dark:text-white">
+  <header class="bg-primary text-white p-4 text-center">
+    <h1 class="text-2xl font-bold">💸 Mohemmtek</h1>
+    <p class="text-sm">اكسب فلوس مقابل تنفيذ مهام بسيطة</p>
+  </header>
+
+  <main class="max-w-xl mx-auto p-4">
+    <section id="login-section">
+      <input type="email" id="email" placeholder="ادخل بريدك الإلكتروني" class="w-full p-2 rounded border mb-1 dark:bg-gray-800 dark:border-gray-700" />
+      <p id="email-error" class="error-message">⚠️ يرجى إدخال بريد إلكتروني صحيح</p>
+      <button onclick="login()" class="bg-primary text-white w-full p-2 rounded hover:bg-green-700 transition mt-2">تسجيل الدخول</button>
+    </section>
+
+    <section id="app-section" class="hidden">
+      <div class="flex justify-between items-center mb-2">
+        <div>👤 <span id="user-email"></span></div>
+        <div>💰 الرصيد: <span id="balance">0</span> جنيه</div>
+      </div>
+
+      <div class="flex justify-between gap-2 mb-4">
+        <button onclick="toggleWithdraw()" class="w-full bg-primary text-white py-2 rounded hover:bg-green-700 transition">📤 طلب سحب</button>
+        <button onclick="togglePromotion()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">📢 طلب ترويج</button>
+        <button onclick="showStats()" class="w-full bg-gray-200 dark:bg-gray-700 text-black dark:text-white py-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">📊 إحصائياتي</button>
+        <button onclick="logout()" class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition">🚪 تسجيل الخروج</button>
+      </div>
+
+      <!-- عداد المهام الجديدة -->
+      <div id="countdown-section" class="countdown">
+        <div class="countdown-title">⏳ المهام الجديدة ستصبح متاحة خلال:</div>
+        <div id="countdown-timer" class="countdown-timer">24:00:00</div>
+      </div>
+
+      <h2 class="text-lg font-bold mt-4 mb-2">📋 المهام المتاحة</h2>
+      <div id="tasks-container" class="space-y-4">
+        <!-- سيتم تعبئة المهام هنا -->
+      </div>
+
+      <!-- قسم طلب الترويج -->
+      <div id="promotion-section" class="hidden mt-6 bg-white dark:bg-cardBg p-4 rounded shadow border border-blue-400">
+        <h3 class="font-bold text-lg mb-2">📢 طلب ترويج</h3>
+        <p class="text-sm text-blue-500 font-semibold mb-4">يمكنك طلب الترويج لمنتجك أو خدمتك هنا</p>
+        
+        <div class="space-y-3">
+          <input type="text" id="promotion-name" class="w-full p-2 rounded border dark:bg-gray-800 dark:border-gray-700" placeholder="اسم المنتج/الخدمة" required>
+          <textarea id="promotion-details" class="w-full p-2 rounded border dark:bg-gray-800 dark:border-gray-700" placeholder="تفاصيل الترويج" rows="3" required></textarea>
+          
+          <select id="promotion-support-type" class="w-full p-2 rounded border dark:bg-gray-800 dark:border-gray-700" required>
+            <option value="">اختر نوع الترويج</option>
+            <option value="whatsapp-group">جروب وتساب</option>
+            <option value="tiktok">تيك توك</option>
+            <option value="facebook">فيس بوك</option>
+            <option value="youtube">يوتيوب</option>
+            <option value="telegram-group">جروب تليجرام</option>
+            <option value="telegram-channel">قناة تليجرام</option>
+          </select>
+          
+          <input type="text" id="promotion-duration" class="w-full p-2 rounded border dark:bg-gray-800 dark:border-gray-700" placeholder="المدة (مثال: 3 أيام، أسبوع، شهر)" required>
+          
+          <input type="text" id="promotion-contact" class="w-full p-2 rounded border dark:bg-gray-800 dark:border-gray-700" placeholder="رقم التليجرام/الواتساب للتواصل" required>
+          
+          <button id="promotion-btn" onclick="sendPromotionRequest()" class="bg-blue-600 text-white w-full p-2 rounded hover:bg-blue-700 transition flex justify-center items-center gap-2">
+            <span id="promotion-text">إرسال طلب الترويج</span>
+            <span id="promotion-spinner" class="loading hidden"></span>
+          </button>
+        </div>
+      </div>
+
+      <div id="withdraw-section" class="hidden mt-6 bg-white dark:bg-cardBg p-4 rounded shadow border border-yellow-400">
+        <h3 class="font-bold text-lg mb-2">🧾 بيانات السحب</h3>
+        <p class="text-sm text-yellow-500 font-semibold">⚠️ يرجى أخذ لقطة شاشة لرصيد الحساب قبل طلب السحب، وإلا لن يتم تحويل المبلغ.</p>
+        <p class="text-sm text-yellow-500 font-semibold mb-4">📷 يُفضل إرسال الصورة مع الرسالة لتسهيل عملية السحب.</p>
+        <div class="space-y-3">
+          <input type="text" id="withdraw-name" class="w-full p-2 rounded border dark:bg-gray-800 dark:border-gray-700" placeholder="الاسم الثلاثي" required>
+          <select id="withdraw-wallet" class="w-full p-2 rounded border dark:bg-gray-800 dark:border-gray-700" required>
+            <option value="">اختر نوع المحفظة</option>
+            <option value="vodafone">فودافون كاش</option>
+            <option value="etisalat">اتصالات كاش</option>
+            <option value="orange">أورانج موني</option>
+            <option value="banque">بنك مصر</option>
+          </select>
+          <input type="text" id="withdraw-number" class="w-full p-2 rounded border dark:bg-gray-800 dark:border-gray-700" placeholder="رقم المحفظة / الحساب" required>
+          <input type="number" id="withdraw-amount" class="w-full p-2 rounded border dark:bg-gray-800 dark:border-gray-700" placeholder="المبلغ المطلوب سحبه" min="10" required>
+          <p id="withdraw-warning" class="text-red-500 text-sm hidden">⚠️ المبلغ أكبر من الرصيد!</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">الحد الأدنى للسحب: 10 جنيه</p>
+          <button id="withdraw-btn" onclick="requestWithdraw()" class="bg-primary text-white w-full p-2 rounded hover:bg-green-700 transition flex justify-center items-center gap-2">
+            <span id="withdraw-text">إرسال طلب السحب</span>
+            <span id="withdraw-spinner" class="loading hidden"></span>
+          </button>
+        </div>
+      </div>
+
+      <div id="stats-section" class="hidden mt-6 bg-white dark:bg-cardBg p-4 rounded shadow">
+        <h3 class="font-bold text-lg mb-2">📈 إحصائياتك</h3>
+        <div class="space-y-2">
+          <p>📧 البريد: <span id="stat-email" class="font-medium"></span></p>
+          <p>✅ عدد المهام المكتملة: <span id="stat-count" class="font-medium"></span></p>
+          <p>💰 إجمالي الأرباح: <span id="stat-earnings" class="font-medium"></span> جنيه</p>
+          <div class="mt-3">
+            <h4 class="font-semibold mb-1">المهام المكتملة:</h4>
+            <ul class="list-disc list-inside text-sm space-y-1" id="stat-tasks"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="toast" class="fixed bottom-4 left-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden z-50"></div>
+    <div id="screenshot-balance" class="hidden"></div>
+  </main>
+
+  <a href="https://t.me/Mohemmtek" target="_blank" class="fixed bottom-6 left-6 bg-primary text-white p-4 rounded-full shadow-lg text-xl z-50 hover:bg-green-600 transition">💬 دعم</a>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "#00b894",
+            darkBg: "#1e272e",
+            cardBg: "#2f3640",
+          },
+        },
+      },
+    };
+
+    // بيانات المهام
+    let tasks = [
+      {
+        title: "انضم لي جروب التلجرام الخاص بي الموقع",
+        desc: "الانضمام ده مجاني بس مهم عشان هانزل كل التفاصيل هناك",
+        link: "https://t.me/+FYMArN6AOnc2N2U0",
+        reward: 0,
+        verification: "سيتم التحقق من انضمامك للجروب"
+      }
+    ];
+    
+    let countdownInterval;
+    let nextTasksTime = new Date().getTime() + 24 * 60 * 60 * 1000; // بعد 24 ساعة
+
+    // تهيئة البيانات إذا لم تكن موجودة
+    if (!localStorage.getItem('balance')) {
+      localStorage.setItem('balance', JSON.stringify({}));
+    }
+    if (!localStorage.getItem('completed')) {
+      localStorage.setItem('completed', JSON.stringify({}));
+    }
+    if (!localStorage.getItem('nextTasksTime')) {
+      localStorage.setItem('nextTasksTime', nextTasksTime);
+    }
+
+    const email = localStorage.getItem("email") || "";
+    const balance = JSON.parse(localStorage.getItem("balance"));
+    const completed = JSON.parse(localStorage.getItem("completed"))[email] || [];
+
+    function startCountdown() {
+      const now = new Date().getTime();
+      let distance = nextTasksTime - now;
+
+      // تحديث العد التنازلي كل ثانية
+      countdownInterval = setInterval(function() {
+        distance -= 1000;
+        
+        // إذا انتهى الوقت
+        if (distance <= 0) {
+          clearInterval(countdownInterval);
+          document.getElementById('countdown-timer').textContent = "00:00:00";
+          loadNewTasks();
+          return;
+        }
+        
+        // حساب الساعات والدقائق والثواني
+        const hours = Math.floor(distance / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        // عرض العد التنازلي
+        document.getElementById('countdown-timer').textContent = 
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    function loadNewTasks() {
+      // هنا يمكنك إضافة المهام الجديدة لاحقاً
+      showToast("تم تحديث المهام المتاحة!");
+      renderTasks();
+    }
+
+    function showToast(message, duration = 3000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), duration);
+    }
+
+    function login() {
+      const emailInput = document.getElementById("email");
+      const emailError = document.getElementById("email-error");
+      const val = emailInput.value.trim();
+      
+      // إخفاء رسالة الخطأ أولاً
+      emailError.style.display = "none";
+      
+      // التحقق من البريد الإلكتروني
+      if (!val) {
+        emailError.textContent = "⚠️ يرجى إدخال بريدك الإلكتروني";
+        emailError.style.display = "block";
+        emailInput.focus();
+        return;
+      }
+      
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+        emailError.textContent = "⚠️ يرجى إدخال بريد إلكتروني صحيح (مثال: example@domain.com)";
+        emailError.style.display = "block";
+        emailInput.focus();
+        return;
+      }
+      
+      // إذا كان البريد الإلكتروني صحيحاً
+      localStorage.setItem("email", val);
+      
+      // تهيئة رصيد المستخدم إذا لم يكن موجوداً
+      if (!balance[val]) {
+        balance[val] = 0;
+        localStorage.setItem("balance", JSON.stringify(balance));
+      }
+      
+      // تهيئة المهام المكتملة إذا لم تكن موجودة
+      if (!completed[val]) {
+        completed[val] = [];
+        localStorage.setItem("completed", JSON.stringify(completed));
+      }
+      
+      showToast(`مرحباً بك! ${val}`);
+      setTimeout(() => location.reload(), 1000);
+    }
+
+    function logout() {
+      localStorage.removeItem("email");
+      showToast("تم تسجيل الخروج بنجاح");
+      setTimeout(() => location.reload(), 1000);
+    }
+
+    function toggleWithdraw() {
+      const section = document.getElementById("withdraw-section");
+      section.classList.toggle("hidden");
+      
+      if (!section.classList.contains("hidden")) {
+        setTimeout(() => {
+          section.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    }
+
+    function togglePromotion() {
+      const section = document.getElementById("promotion-section");
+      section.classList.toggle("hidden");
+      
+      if (!section.classList.contains("hidden")) {
+        setTimeout(() => {
+          section.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    }
+
+    function showStats() {
+      const statsSection = document.getElementById("stats-section");
+      statsSection.classList.remove("hidden");
+      document.getElementById("stat-email").textContent = email;
+      document.getElementById("stat-count").textContent = completed.length;
+      document.getElementById("stat-earnings").textContent = balance[email] || 0;
+      
+      const ul = document.getElementById("stat-tasks");
+      ul.innerHTML = "";
+      
+      if (completed.length === 0) {
+        ul.innerHTML = '<li class="text-gray-500">لا توجد مهام مكتملة بعد</li>';
+      } else {
+        completed.forEach(i => {
+          const li = document.createElement("li");
+          li.textContent = tasks[i]?.title || `مهمة رقم ${i + 1}`;
+          ul.appendChild(li);
+        });
+      }
+      
+      setTimeout(() => {
+        statsSection.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+
+    function renderTasks() {
+      const container = document.getElementById("tasks-container");
+      if (!container) return;
+      container.innerHTML = "";
+      
+      if (tasks.length === 0) {
+        container.innerHTML = '<p class="text-center text-gray-500">لا توجد مهام متاحة حالياً</p>';
+        return;
+      }
+      
+      tasks.forEach((task, index) => {
+        if (completed.includes(index)) return;
+        
+        const card = document.createElement("div");
+        card.className = "bg-white dark:bg-cardBg p-4 rounded shadow hover:shadow-md transition";
+        card.innerHTML = `
+          <h3 class="font-bold text-lg">${task.title}</h3>
+          <p class="text-sm my-2 text-gray-600 dark:text-gray-300">${task.desc}</p>
+          <p class="text-xs text-yellow-600 dark:text-yellow-400 mb-2">${task.verification}</p>
+          <div class="flex items-center justify-between">
+            <a href="${task.link}" target="_blank" class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 underline">رابط المهمة</a>
+            ${task.reward > 0 ? `<span class="font-bold text-green-600">+${task.reward} جنيه</span>` : ''}
+          </div>
+          <button onclick="completeTask(${index})" class="mt-3 w-full bg-green-600 hover:bg-green-700 text-white p-2 rounded transition">
+            ✔️ أتممت المهمة
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function completeTask(index) {
+      if (completed.includes(index)) {
+        return showToast("لقد أكملت هذه المهمة مسبقاً");
+      }
+      
+      completed.push(index);
+      if (tasks[index].reward > 0) {
+        balance[email] = (balance[email] || 0) + tasks[index].reward;
+        localStorage.setItem("balance", JSON.stringify(balance));
+        document.getElementById("balance").textContent = balance[email];
+      }
+      
+      // تحديث البيانات المحفوظة
+      const allCompleted = JSON.parse(localStorage.getItem("completed")) || {};
+      allCompleted[email] = completed;
+      localStorage.setItem("completed", JSON.stringify(allCompleted));
+      
+      showToast(`تم إكمال المهمة بنجاح!`);
+      renderTasks();
+    }
+
+    function sendPromotionRequest() {
+      const name = document.getElementById("promotion-name").value.trim();
+      const details = document.getElementById("promotion-details").value.trim();
+      const supportType = document.getElementById("promotion-support-type").value;
+      const duration = document.getElementById("promotion-duration").value.trim();
+      const contact = document.getElementById("promotion-contact").value.trim();
+      
+      // التحقق من البيانات
+      if (!name || !details || !supportType || !duration || !contact) {
+        return showToast("يرجى تعبئة كل البيانات المطلوبة");
+      }
+      
+      // عرض حالة التحميل
+      const btn = document.getElementById("promotion-btn");
+      const btnText = document.getElementById("promotion-text");
+      const spinner = document.getElementById("promotion-spinner");
+      
+      btn.disabled = true;
+      btnText.textContent = "جاري إرسال الطلب...";
+      spinner.classList.remove("hidden");
+
+      // تحويل قيمة نوع الترويج إلى نص مفهوم
+      let supportTypeText = "";
+      switch(supportType) {
+        case "whatsapp-group": supportTypeText = "جروب وتساب"; break;
+        case "tiktok": supportTypeText = "تيك توك"; break;
+        case "facebook": supportTypeText = "فيس بوك"; break;
+        case "youtube": supportTypeText = "يوتيوب"; break;
+        case "telegram-group": supportTypeText = "جروب تليجرام"; break;
+        case "telegram-channel": supportTypeText = "قناة تليجرام"; break;
+        default: supportTypeText = "غير محدد";
+      }
+
+      // إنشاء رسالة الترويج
+      const now = new Date().toLocaleString('ar-EG');
+      const msg = `📢 طلب ترويج جديد
+
+🛍️ المنتج/الخدمة: ${name}
+📝 التفاصيل: ${details}
+📌 نوع الترويج: ${supportTypeText}
+⏳ المدة: ${duration}
+📞 للتواصل: ${contact}
+📅 التاريخ: ${now}
+
+شكراً لاختيارك Mohemmtek للترويج!`;
+      
+      // فتح التليجرام
+      setTimeout(() => {
+        const tgUrl = `https://t.me/Mohemmtek?text=${encodeURIComponent(msg)}`;
+        window.open(tgUrl, "_blank");
+        
+        // إعادة تعيين الزر
+        btn.disabled = false;
+        btnText.textContent = "إرسال طلب الترويج";
+        spinner.classList.add("hidden");
+        
+        // إظهار رسالة نجاح
+        showToast("تم إرسال طلب الترويج بنجاح");
+        togglePromotion();
+      }, 1000);
+    }
+
+    async function requestWithdraw() {
+      const name = document.getElementById("withdraw-name").value.trim();
+      const wallet = document.getElementById("withdraw-wallet").value;
+      const number = document.getElementById("withdraw-number").value.trim();
+      const amount = parseFloat(document.getElementById("withdraw-amount").value);
+      const warning = document.getElementById("withdraw-warning");
+      const currentBalance = balance[email] || 0;
+      
+      // التحقق من البيانات
+      if (!name || !wallet || !number || !amount) {
+        return showToast("يرجى تعبئة كل البيانات");
+      }
+      
+      if (amount < 10) {
+        return showToast("الحد الأدنى للسحب هو 10 جنيه");
+      }
+      
+      if (amount > currentBalance) {
+        warning.classList.remove("hidden");
+        return showToast("المبلغ أكبر من رصيدك الحالي");
+      } else {
+        warning.classList.add("hidden");
+      }
+      
+      // عرض حالة التحميل
+      const btn = document.getElementById("withdraw-btn");
+      const btnText = document.getElementById("withdraw-text");
+      const spinner = document.getElementById("withdraw-spinner");
+      
+      btn.disabled = true;
+      btnText.textContent = "جاري معالجة الطلب...";
+      spinner.classList.remove("hidden");
+
+      try {
+        // عرض الرصيد بشكل واضح للقطة
+        const balanceDisplay = document.getElementById('screenshot-balance');
+        balanceDisplay.textContent = `رصيد الحساب: ${currentBalance} جنيه`;
+        balanceDisplay.classList.remove('hidden');
+        
+        // أخذ لقطة للشاشة
+        const canvas = await html2canvas(document.getElementById("app-section"), { 
+          scale: 1,
+          logging: false,
+          useCORS: true,
+          onclone: function(clonedDoc) {
+            // إضافة الرصيد للنسخة المستخدمة للقطة
+            const clonedBalance = clonedDoc.getElementById('screenshot-balance');
+            if (clonedBalance) {
+              clonedBalance.textContent = `رصيد الحساب: ${currentBalance} جنيه`;
+              clonedBalance.style.display = 'block';
+              clonedBalance.style.position = 'fixed';
+              clonedBalance.style.top = '20px';
+              clonedBalance.style.left = '20px';
+              clonedBalance.style.background = 'white';
+              clonedBalance.style.padding = '10px';
+              clonedBalance.style.borderRadius = '5px';
+              clonedBalance.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+              clonedBalance.style.zIndex = '9999';
+              clonedBalance.style.fontWeight = 'bold';
+              clonedBalance.style.fontSize = '18px';
+              clonedBalance.style.color = '#00b894';
+            }
+          }
+        });
+        
+        // إخفاء عرض الرصيد بعد اللقطة
+        balanceDisplay.classList.add('hidden');
+        
+        // تحويل الصورة إلى base64
+        const imageData = canvas.toDataURL('image/png').split(',')[1];
+        
+        // إرسال الصورة (هذا مثال - يجب استخدام سيرفرك الخاص)
+        const fd = new FormData();
+        fd.append("image", imageData);
+        
+        const uploadResponse = await fetch("https://api.imgbb.com/1/upload?key=cededa47bf81a4677dc7831a3b4e7226", {
+          method: "POST",
+          body: fd,
+        });
+        
+        if (!uploadResponse.ok) throw new Error("فشل في تحميل الصورة");
+        
+        const uploadData = await uploadResponse.json();
+        const imageUrl = uploadData.data.url;
+        
+        // إنشاء رسالة السحب
+        const now = new Date().toLocaleString('ar-EG');
+        const msg = `📤 طلب سحب جديد
+
+👤 الاسم: ${name}
+📱 المحفظة: ${wallet}
+🔢 رقم الحساب: ${number}
+💰 المبلغ المطلوب: ${amount} جنيه
+💳 الرصيد الحالي: ${currentBalance} جنيه
+📧 البريد الإلكتروني: ${email}
+📅 التاريخ: ${now}
+🖼️ لقطة شاشة: ${imageUrl}
+
+🚫 يُمنع تعديل محتوى هذه الرسالة. أي تلاعب سيؤدي إلى تجميد الحساب نهائيًا.`;
+        
+        // فتح التليجرام
+        const tgUrl = `https://t.me/Mohemmtek?text=${encodeURIComponent(msg)}`;
+        window.open(tgUrl, "_blank");
+        
+        // خصم المبلغ من الرصيد
+        balance[email] -= amount;
+        localStorage.setItem("balance", JSON.stringify(balance));
+        document.getElementById("balance").textContent = balance[email];
+        
+        showToast("تم إرسال طلب السحب بنجاح");
+        toggleWithdraw();
+      } catch (error) {
+        console.error("Error:", error);
+        showToast("حدث خطأ أثناء معالجة الطلب");
+      } finally {
+        // إعادة تعيين الزر
+        btn.disabled = false;
+        btnText.textContent = "إرسال طلب السحب";
+        spinner.classList.add("hidden");
+      }
+    }
+
+    function showApp() {
+      const loginSection = document.getElementById("login-section");
+      const appSection = document.getElementById("app-section");
+      
+      if (!loginSection || !appSection) return;
+      
+      loginSection.classList.add("hidden");
+      appSection.classList.remove("hidden");
+      document.getElementById("user-email").textContent = email;
+      document.getElementById("balance").textContent = balance[email] || 0;
+      startCountdown();
+      renderTasks();
+    }
+
+    // عند تحميل الصفحة
+    document.getElementById("email").addEventListener("input", function() {
+      document.getElementById("email-error").style.display = "none";
+    });
+
+    if (email) {
+      showApp();
+    }
+  </script>
+</body>
+</html>
